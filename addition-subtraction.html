@@ -1,0 +1,284 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html><head><style type="text/css">
+
+html, body {
+  width: 100%;
+}
+
+body{
+  margin: 50px;
+  padding: 0;
+}
+
+table#problems {
+  font-family: "Comic Sans MS";
+  font-size: 20pt;  
+  border-collapse: collapse;
+  margin: 0 auto;
+  margin-top: 0;
+}
+
+td {
+  padding: 20px 120px 20px 10px;
+  text-align: left;
+}
+
+.container label {
+  display: inline-block;
+  float: left;
+  clear: left;
+  width: 200px;
+  text-align: left;
+}
+
+.container input {
+  display: inline-block;
+  float: left;
+}
+
+</style>
+
+<style media="screen">
+.noPrint { 
+  display: block; 
+}
+
+.yesPrint { 
+  display: block !important; 
+}
+
+div#table {
+  padding-top: 100px;
+}  
+</style>
+
+<style media="print">
+.noPrint { 
+  display: none; 
+}
+
+.yesPrint{ 
+  display: block !important; 
+}
+</style>
+
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.8/jquery.min.js"></script>
+<script type="text/javascript">
+
+//------------------------------------------------------------------------------
+function getRandomInt (min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + parseInt(min);
+}
+
+//------------------------------------------------------------------------------
+function createAdditionProblem () {
+
+  var operand1Min = parseInt($('#addition_operand1_min').val());
+  var operand1Max = parseInt($('#addition_operand1_max').val());
+  var resultMin = parseInt($('#addition_result_min').val());
+  var resultMax = parseInt($('#addition_result_max').val());
+
+  // Result
+  if ( resultMax > operand1Max*2 )
+    resultMax = operand1Max*2;
+
+  if ( resultMin <= operand1Min )
+    resultMin = operand1Min + 1;
+
+  var result = getRandomInt( resultMin, resultMax );
+
+  //console.log( "Result range:    " + resultMin + " -> " + resultMax + " : " + result );
+
+  // Operand 1
+  var operand1Max = result - 1; // -1 to prevent zeros
+  var operand1 = getRandomInt( operand1Min, operand1Max );
+
+  //console.log( "Operand 1 range: " + operand1Min + " -> " + operand1Max );
+
+  // Operand 2
+  var operand2 = result - operand1;
+  
+  return ( 
+    operand1
+  + ' + '
+  + operand2 
+  + ' = ' 
+  /* + result */ );
+}
+
+//------------------------------------------------------------------------------
+function createSubtractionProblem () {
+
+  var resMin = parseInt($('#subtraction_result_min').val());
+  var resMax = parseInt($('#subtraction_result_max').val());
+  var op1Min = parseInt($('#subtraction_operand_min').val());
+  var op1Max = parseInt($('#subtraction_operand_max').val());
+
+  // result
+  resMax = Math.min ( ( op1Max - op1Min ), resMax );
+  var res = getRandomInt( resMin, resMax);
+   
+  // Operand 1
+   
+  op1Min = Math.max( res + 1, op1Min);
+
+      // op1min must be larger than ( res - 1 )!
+  
+  var op1 = getRandomInt( op1Min, op1Max );
+  
+  var op2 = op1 - res;
+  
+  return ( 
+	  op1
+	+ ' - '
+	+ op2 
+	+ ' = ' /* + res */ );
+}
+
+//------------------------------------------------------------------------------
+function createProblem () {
+  
+  var operators = new Array();
+  if ( $('#addition').is(':checked') )
+    operators.push( createAdditionProblem );
+  if ( $('#subtraction').is(':checked') )
+    operators.push( createSubtractionProblem );
+
+  var operator = operators[ getRandomInt(0, operators.length-1) ];
+
+  var text = operator(); 
+
+  return text;
+}
+
+//------------------------------------------------------------------------------
+function validate() {
+
+  // TODO: Validate parameters
+
+  return true;
+}
+
+//------------------------------------------------------------------------------
+function createTable() {
+
+  if ( !validate() )
+    return;
+
+  $( "#problems" ).remove();
+  var table = document.createElement('table');
+  table.setAttribute("id", "problems");  
+  
+  var rows = $('#rows').val();  
+  var cols = $('#cols').val();  
+  
+  problems = {}
+  for (var r = 1; r <= rows; r++){
+    var tr = document.createElement('tr');   
+    for (var c = 1; c <= cols; c++){
+
+      var iterations = 1;
+      var text = createProblem();
+      while ( iterations <= 10 && problems[text] == 1 )
+      {
+        //console.log ( "Duplicate : " + text );
+        ++iterations;
+        text = createProblem();
+      }
+
+      problems[text] = 1;
+      var textNode = document.createTextNode(text);
+      
+      var td = document.createElement('td');
+      td.appendChild(textNode);
+      tr.appendChild(td);
+
+    }
+    table.appendChild(tr);
+  }
+  $( "#table" ).append(table);
+  
+  // Save settings for next run
+  saveValue('addition_operand1_min');
+  saveValue('addition_operand1_max');
+  saveValue('addition_result_min');
+  saveValue('addition_result_max');
+  saveValue('subtraction_operand_min');
+  saveValue('subtraction_operand_max');
+  saveValue('subtraction_result_min');
+  saveValue('subtraction_result_max');
+}
+
+//------------------------------------------------------------------------------
+function saveValue( name ) {
+  localStorage.setItem(name,$('#'+name).val());  
+}
+
+//------------------------------------------------------------------------------
+function setValue( name, defaultValue ) {
+  $('#'+name).val(localStorage.getItem(name) || defaultValue);
+}
+
+//------------------------------------------------------------------------------
+$(document).ready(function() {
+
+  $("input[type=text]").each(function(i) {
+     $(this)[0].setAttribute("onKeyPress", "createTable()");;
+     $(this)[0].setAttribute("onKeyUp", "createTable()");;
+  });
+
+  $("input[type=checkbox]").each(function(i) {
+     $(this)[0].setAttribute("onClick", "createTable()");;
+  });
+
+
+  $('#rows').val('5');
+  $('#cols').val('4');
+  
+  $('#addition').prop('checked', true);
+  setValue( 'addition_operand1_min', '1' );
+  setValue( 'addition_operand1_max', '12' );
+  setValue( 'addition_result_min', '1' );
+  setValue( 'addition_result_max', '12' );
+  
+  $('#subtraction').prop('checked', true);
+  setValue( 'subtraction_operand_min', '1' );
+  setValue( 'subtraction_operand_max', '12' );
+  setValue( 'subtraction_result_min', '1' );
+  setValue( 'subtraction_result_max', '12' );
+  
+  createTable();
+});
+
+
+</script>
+
+</head>
+<body>
+
+<div id="config" class="noPrint">
+<h1>Configuration</h1>
+<p>This content will not print</p>
+<div class="container">
+<label>Rows:              </label><input type="text" id="rows"         /><br />
+<label>Columns:           </label><input type="text" id="cols"         /><br />
+<label>Addition:          </label><input type="checkbox" id="addition" /><br />
+<label>Operands Minimum:  </label><input type="text" id="addition_operand1_min" /><span id="addition_operand_validate"></span><br />
+<label>Operands Maximum:  </label><input type="text" id="addition_operand1_max" /><br />
+<label>Result Minimum:    </label><input type="text" id="addition_result_min" /><br />
+<label>Result Maximum:    </label><input type="text" id="addition_result_max" /><br />
+<br />
+<label>Subtraction:       </label><input type="checkbox" id="subtraction" /><br />
+<label>Operand Minimum:   </label><input type="text" id="subtraction_operand_min" /><br />
+<label>Operand Maximum:   </label><input type="text" id="subtraction_operand_max" /><br />
+<label>Result Minimum:    </label><input type="text" id="subtraction_result_min" /><br />
+<label>Result Maximum:    </label><input type="text" id="subtraction_result_max" /><br />
+</div>
+</div>
+<br />
+<div id="table">
+<h1 class="noPrint">Table</h1>
+</div>
+
+</body>
+</html>
